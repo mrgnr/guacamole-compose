@@ -1,0 +1,48 @@
+version: "3.9"
+
+networks:
+  guacnetwork:
+    driver: bridge
+
+services:
+  guacd:
+    container_name: guacd
+    image: guacamole/guacd
+    networks:
+      - guacnetwork
+    ports:
+      - "4822:4822"
+  postgres:
+    container_name: postgres
+    image: postgres
+    networks:
+      - guacnetwork
+    ports:
+      - "5432:5432"
+    environment:
+      PGDATA: /var/lib/postgresql/data/guacamole
+      POSTGRES_DB: guacamole
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pw
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - ./data:/var/lib/postgresql/data:rw
+  guacamole:
+    container_name: guacamole
+    image: guacamole/guacamole
+    depends_on:
+      - guacd
+      - postgres
+    environment:
+      GUACD_HOSTNAME: guacd
+      POSTGRES_HOSTNAME: postgres
+      POSTGRES_DATABASE: guacamole
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pw
+    networks:
+      - guacnetwork
+    ports:
+      - "8080:8080"
+    links:
+      - guacd
+      - postgres
